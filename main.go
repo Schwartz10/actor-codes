@@ -11,6 +11,7 @@ import (
 	"github.com/filecoin-project/go-state-types/manifest"
 	lotusapi "github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/blockstore"
+	"github.com/filecoin-project/lotus/build"
 	"github.com/filecoin-project/lotus/chain/actors"
 	"github.com/filecoin-project/lotus/chain/actors/adt"
 	"github.com/filecoin-project/lotus/chain/actors/builtin/miner"
@@ -37,6 +38,11 @@ func main() {
 
 	minerAddr, err := address.NewFromString("f01001")
 
+	err = build.UseNetworkBundle("calibrationnet")
+	if err != nil {
+		panic(err)
+	}
+
 	actor, err := api.StateGetActor(context.Background(), minerAddr, types.TipSetKey{})
 	if err != nil {
 		panic(err)
@@ -48,18 +54,14 @@ func main() {
 	if !success {
 		panic("failed to get actor codes")
 	}
-
 	fmt.Printf("Miner actor code from GetActorCodeID: %s\n", actorCode)
-
-	mact, err := api.StateGetActor(context.Background(), minerAddr, types.EmptyTSK)
-	if err != nil {
-		panic(err)
-	}
 
 	tbs := blockstore.NewTieredBstore(blockstore.NewAPIBlockstore(&api), blockstore.NewMemory())
 
-	_, err = miner.Load(adt.WrapStore(context.Background(), cbor.NewCborStore(tbs)), mact)
+	state, err := miner.Load(adt.WrapStore(context.Background(), cbor.NewCborStore(tbs)), actor)
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Println("State", state)
 }
