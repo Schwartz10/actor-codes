@@ -10,8 +10,12 @@ import (
 	actorstypes "github.com/filecoin-project/go-state-types/actors"
 	"github.com/filecoin-project/go-state-types/manifest"
 	lotusapi "github.com/filecoin-project/lotus/api"
+	"github.com/filecoin-project/lotus/blockstore"
 	"github.com/filecoin-project/lotus/chain/actors"
+	"github.com/filecoin-project/lotus/chain/actors/adt"
+	"github.com/filecoin-project/lotus/chain/actors/builtin/miner"
 	"github.com/filecoin-project/lotus/chain/types"
+	cbor "github.com/ipfs/go-ipld-cbor"
 )
 
 func main() {
@@ -47,4 +51,15 @@ func main() {
 
 	fmt.Printf("Miner actor code from GetActorCodeID: %s\n", actorCode)
 
+	mact, err := api.StateGetActor(context.Background(), minerAddr, types.EmptyTSK)
+	if err != nil {
+		panic(err)
+	}
+
+	tbs := blockstore.NewTieredBstore(blockstore.NewAPIBlockstore(&api), blockstore.NewMemory())
+
+	_, err = miner.Load(adt.WrapStore(context.Background(), cbor.NewCborStore(tbs)), mact)
+	if err != nil {
+		panic(err)
+	}
 }
